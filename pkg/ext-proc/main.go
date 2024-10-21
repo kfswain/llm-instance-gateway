@@ -16,6 +16,8 @@ import (
 	"google.golang.org/grpc/codes"
 	healthPb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	klog "k8s.io/klog/v2"
 
 	"ext-proc/backend"
@@ -30,6 +32,7 @@ var (
 	port            = flag.Int("port", 9002, "gRPC port")
 	targetPodHeader = flag.String("targetPodHeader", "target-pod", "the header key for the target pod address to instruct Envoy to send the request to. This must match Envoy configuration.")
 	podIPsFlag      = flag.String("podIPs", "", "Comma-separated list of pod IPs")
+	serverPoolName  = flag.String("serverPoolName", "", "Name of the serverPool this ext-proc is associated with.")
 
 	refreshPodsInterval    = flag.Duration("refreshPodsInterval", 10*time.Second, "interval to refresh pods")
 	refreshMetricsInterval = flag.Duration("refreshMetricsInterval", 50*time.Millisecond, "interval to refresh metrics")
@@ -71,6 +74,17 @@ func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		klog.Fatalf("failed to listen: %v", err)
+	}
+
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
 	}
 
 	s := grpc.NewServer()
