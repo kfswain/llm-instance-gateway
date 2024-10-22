@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	healthPb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+	clientset "inference.networking.x-k8s.io/llm-instance-gateway/client-go/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	klog "k8s.io/klog/v2"
@@ -82,11 +83,24 @@ func main() {
 		panic(err.Error())
 	}
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	kubeClientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+	iGWClientSet, err := clientset.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
 
+	k8sClient := backend.NewK8sClient("test-pool", "default", kubeClientset, iGWClientSet)
+	serverPool, err := k8sClient.GetLLMServerPool()
+	if err != nil {
+		klog.Error(err.Error())
+	} else if serverPool != nil {
+		klog.Info(fmt.Printf("KELLEN TEST: %v", serverPool.Spec.ModelServerSelector.MatchLabels))
+	} else {
+		klog.Info("No err but serverPool is nil")
+	}
 	s := grpc.NewServer()
 
 	pp := backend.NewProvider(&backend.PodMetricsClientImpl{}, &backend.FakePodLister{Pods: pods})
