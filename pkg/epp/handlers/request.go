@@ -39,49 +39,20 @@ func (s *StreamingServer) HandleRequestBody(
 	requestBodyMap map[string]interface{},
 ) (*RequestContext, error) {
 	var requestBodyBytes []byte
+	var err error
 	logger := log.FromContext(ctx)
 
 	// Resolve target models.
-	model, ok := requestBodyMap["model"].(string)
-	if !ok {
-		return reqCtx, errutil.Error{Code: errutil.BadRequest, Msg: "model not found in request"}
-	}
-
-	modelName := model
-
-	// NOTE: The nil checking for the modelObject means that we DO allow passthrough currently.
-	// This might be a security risk in the future where adapters not registered in the InferenceModel
-	// are able to be requested by using their distinct name.
-	modelObj := s.datastore.ModelGet(model)
-	if modelObj == nil {
-		return reqCtx, errutil.Error{Code: errutil.BadConfiguration, Msg: fmt.Sprintf("error finding a model object in InferenceModel for input %v", model)}
-	}
-	if len(modelObj.Spec.TargetModels) > 0 {
-		modelName = RandomWeightedDraw(logger, modelObj, 0)
-		if modelName == "" {
-			return reqCtx, errutil.Error{Code: errutil.BadConfiguration, Msg: fmt.Sprintf("error getting target model name for model %v", modelObj.Name)}
-		}
-	}
-	llmReq := &schedulingtypes.LLMRequest{
-		Model:               model,
-		ResolvedTargetModel: modelName,
-		Critical:            modelObj.Spec.Criticality != nil && *modelObj.Spec.Criticality == v1alpha2.Critical,
-	}
-	logger.V(logutil.DEBUG).Info("LLM request assembled", "model", llmReq.Model, "targetModel", llmReq.ResolvedTargetModel, "critical", llmReq.Critical)
-
-	var err error
-	// Update target models in the body.
-	if llmReq.Model != llmReq.ResolvedTargetModel {
-		requestBodyMap["model"] = llmReq.ResolvedTargetModel
-	}
-
-	requestBodyBytes, err = json.Marshal(requestBodyMap)
+	reqCtx, err := s.translateModel(ctx, reqCtx, requestBodyMap)
 	if err != nil {
-		logger.V(logutil.DEFAULT).Error(err, "Error marshaling request body")
-		return reqCtx, errutil.Error{Code: errutil.Internal, Msg: fmt.Sprintf("error marshaling request body: %v", err)}
+		return reqCtx, err
 	}
 
-	target, err := s.scheduler.Schedule(ctx, llmReq)
+	target, err := s.scheduler.Schedule(ctx, &schedulingtypes.LLMRequest{
+		InferenceModelName:  reqCtx.InferenceModelName,
+		ResolvedTargetModel: reqCtx.ResolvedTargetModel,
+		Critical:            modelObj.Spec.Criticality != nil && *modelObj.Spec.Criticality == v1alpha2.Critical,
+	})
 	if err != nil {
 		return reqCtx, errutil.Error{Code: errutil.InferencePoolResourceExhausted, Msg: fmt.Errorf("failed to find target pod: %w", err).Error()}
 	}
@@ -96,12 +67,19 @@ func (s *StreamingServer) HandleRequestBody(
 	endpoint := targetPod.Address + ":" + strconv.Itoa(int(pool.Spec.TargetPortNumber))
 
 	logger.V(logutil.DEFAULT).Info("Request handled",
-		"model", llmReq.Model, "targetModel", llmReq.ResolvedTargetModel, "endpoint", targetPod, "endpoint metrics",
+		"model", reqCtx.InferenceModelName, "targetModel", reqCtx.ResolvedTargetModel, "endpoint", targetPod, "endpoint metrics",
 		fmt.Sprintf("%+v", target))
 
-	reqCtx.Model = llmReq.Model
-	reqCtx.ResolvedTargetModel = llmReq.ResolvedTargetModel
+	requestBodyMap["model"] = reqCtx.ResolvedTargetModel
+	requestBodyBytes, err = json.Marshal(requestBodyMap)
+	if err != nil {
+		logger.V(logutil.DEFAULT).Error(err, "Error marshaling request body")
+		return reqCtx, errutil.Error{Code: errutil.Internal, Msg: fmt.Sprintf("error marshaling request body: %v", err)}
+	}
+
 	reqCtx.RequestSize = len(requestBodyBytes)
+	reqCtx.InferenceModelName = reqCtx.InferenceModelName
+	reqCtx.ResolvedTargetModel = reqCtx.ResolvedTargetModel
 	reqCtx.TargetPod = targetPod.NamespacedName.String()
 	reqCtx.TargetEndpoint = endpoint
 
@@ -126,6 +104,31 @@ func (s *StreamingServer) HandleRequestBody(
 			},
 		},
 	}
+	return reqCtx, nil
+}
+
+// translateModel fetches the
+func (s *StreamingServer) translateModel(ctx context.Context, reqCtx RequestContext, requestBody map[string]interface{}) (RequestContext, error) {
+	var ok bool
+
+	reqCtx.InferenceModelName, ok = requestBody["model"].(string)
+	if !ok {
+		return reqCtx, errutil.Error{Code: errutil.BadRequest, Msg: "model not found in request"}
+	}
+
+	// NOTE: The nil checking for the modelObject means that we DO allow passthrough currently.
+	// This might be a security risk in the future where adapters not registered in the InferenceModel
+	// are able to be requested by using their distinct name.
+	modelObj := s.datastore.ModelGet(reqCtx.InferenceModelName)
+	if modelObj == nil {
+		return reqCtx, errutil.Error{Code: errutil.BadConfiguration, Msg: fmt.Sprintf("error finding a model object in InferenceModel for input %v", reqCtx.InferenceModelName)}
+	} else if len(modelObj.Spec.TargetModels) > 0 {
+		reqCtx.ResolvedTargetModel = RandomWeightedDraw(ctx, modelObj, 0)
+		if reqCtx.ResolvedTargetModel == "" {
+			return reqCtx, errutil.Error{Code: errutil.BadConfiguration, Msg: fmt.Sprintf("error getting target model name for model %v", modelObj.Name)}
+		}
+	}
+
 	return reqCtx, nil
 }
 

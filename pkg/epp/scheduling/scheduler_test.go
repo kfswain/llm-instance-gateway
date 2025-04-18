@@ -37,7 +37,7 @@ func TestSchedule(t *testing.T) {
 		{
 			name: "critical request",
 			req: &types.LLMRequest{
-				Model:               "critical",
+				InferenceModelName:  "critical",
 				ResolvedTargetModel: "critical",
 				Critical:            true,
 			},
@@ -97,7 +97,7 @@ func TestSchedule(t *testing.T) {
 		{
 			name: "sheddable request, accepted",
 			req: &types.LLMRequest{
-				Model:               "sheddable",
+				InferenceModelName:  "sheddable",
 				ResolvedTargetModel: "sheddable",
 				Critical:            false,
 			},
@@ -156,7 +156,7 @@ func TestSchedule(t *testing.T) {
 		{
 			name: "sheddable request, dropped",
 			req: &types.LLMRequest{
-				Model:               "sheddable",
+				InferenceModelName:  "sheddable",
 				ResolvedTargetModel: "sheddable",
 				Critical:            false,
 			},

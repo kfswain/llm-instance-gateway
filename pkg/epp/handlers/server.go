@@ -72,7 +72,7 @@ type Scheduler interface {
 type RequestContext struct {
 	TargetPod                 string
 	TargetEndpoint            string
-	Model                     string
+	InferenceModelName        string
 	ResolvedTargetModel       string
 	RequestReceivedTimestamp  time.Time
 	ResponseCompleteTimestamp time.Time
@@ -129,12 +129,12 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 	var err error
 	defer func(error, *RequestContext) {
 		if reqCtx.ResponseStatusCode != "" {
-			metrics.RecordRequestErrCounter(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.ResponseStatusCode)
+			metrics.RecordRequestErrCounter(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.ResponseStatusCode)
 		} else if err != nil {
-			metrics.RecordRequestErrCounter(reqCtx.Model, reqCtx.ResolvedTargetModel, errutil.CanonicalCode(err))
+			metrics.RecordRequestErrCounter(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, errutil.CanonicalCode(err))
 		}
 		if reqCtx.RequestRunning {
-			metrics.DecRunningRequests(reqCtx.Model)
+			metrics.DecRunningRequests(reqCtx.InferenceModelName)
 		}
 	}(err, reqCtx)
 
@@ -176,11 +176,17 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 				body = []byte{}
 
 				reqCtx, err = s.HandleRequestBody(ctx, reqCtx, req, requestBody)
+
+				// Apply workload rules
+
+				// Pass through flow controller
+
+				// Apply scheduling
 				if err != nil {
 					logger.V(logutil.DEFAULT).Error(err, "Error handling body")
 				} else {
-					metrics.RecordRequestCounter(reqCtx.Model, reqCtx.ResolvedTargetModel)
-					metrics.RecordRequestSizes(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.RequestSize)
+					metrics.RecordRequestCounter(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel)
+					metrics.RecordRequestSizes(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.RequestSize)
 				}
 			}
 		case *extProcPb.ProcessingRequest_RequestTrailers:
@@ -228,8 +234,8 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 					loggerTrace.Info("stream completed")
 
 					reqCtx.ResponseCompleteTimestamp = time.Now()
-					metrics.RecordRequestLatencies(ctx, reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.RequestReceivedTimestamp, reqCtx.ResponseCompleteTimestamp)
-					metrics.RecordResponseSizes(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.ResponseSize)
+					metrics.RecordRequestLatencies(ctx, reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.RequestReceivedTimestamp, reqCtx.ResponseCompleteTimestamp)
+					metrics.RecordResponseSizes(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.ResponseSize)
 				}
 
 				reqCtx.respBodyResp = &extProcPb.ProcessingResponse{
@@ -268,10 +274,10 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 						logger.V(logutil.DEFAULT).Error(responseErr, "Failed to process response body", "request", req)
 					} else if reqCtx.ResponseComplete {
 						reqCtx.ResponseCompleteTimestamp = time.Now()
-						metrics.RecordRequestLatencies(ctx, reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.RequestReceivedTimestamp, reqCtx.ResponseCompleteTimestamp)
-						metrics.RecordResponseSizes(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.ResponseSize)
-						metrics.RecordInputTokens(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.Usage.PromptTokens)
-						metrics.RecordOutputTokens(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.Usage.CompletionTokens)
+						metrics.RecordRequestLatencies(ctx, reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.RequestReceivedTimestamp, reqCtx.ResponseCompleteTimestamp)
+						metrics.RecordResponseSizes(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.ResponseSize)
+						metrics.RecordInputTokens(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.Usage.PromptTokens)
+						metrics.RecordOutputTokens(reqCtx.InferenceModelName, reqCtx.ResolvedTargetModel, reqCtx.Usage.CompletionTokens)
 					}
 				}
 			}
@@ -318,7 +324,7 @@ func (r *RequestContext) updateStateAndSendIfNeeded(srv extProcPb.ExternalProces
 			return status.Errorf(codes.Unknown, "failed to send response back to Envoy: %v", err)
 		}
 		r.RequestState = BodyRequestResponsesComplete
-		metrics.IncRunningRequests(r.Model)
+		metrics.IncRunningRequests(r.InferenceModelName)
 		r.RequestRunning = true
 		// Dump the response so a new stream message can begin
 		r.reqBodyResp = nil
@@ -416,7 +422,8 @@ func (s *StreamingServer) populateRequestHeaderResponse(reqCtx *RequestContext, 
 	}
 }
 
-func RandomWeightedDraw(logger logr.Logger, model *v1alpha2.InferenceModel, seed int64) string {
+func RandomWeightedDraw(ctx context.Context, model *v1alpha2.InferenceModel, seed int64) string {
+	logger := log.FromContext(ctx)
 	// TODO: after we are down to 1 server implementation, make these methods a part of the struct
 	// and handle random seeding on the struct.
 	source := rand.NewSource(rand.Int63())
