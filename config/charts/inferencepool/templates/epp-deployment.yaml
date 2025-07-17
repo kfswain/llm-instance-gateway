@@ -23,19 +23,19 @@ spec:
         image: {{ .Values.inferenceExtension.image.hub }}/{{ .Values.inferenceExtension.image.name }}:{{ .Values.inferenceExtension.image.tag }}
         imagePullPolicy: {{ .Values.inferenceExtension.image.pullPolicy | default "Always" }}
         args:
-        - -poolName
+        - --pool-name
         - {{ .Release.Name }}
-        - -poolNamespace
+        - --pool-namespace
         - {{ .Release.Namespace }}
         - --v
         - "{{ .Values.inferenceExtension.logVerbosity | default "3" }}"
         - --grpcPort
         - "9002"
-        - -grpcHealthPort
+        - --grpc-health-port
         - "9003"
-        - -metricsPort
+        - --metrics-port
         - "9090"
-        - -configFile
+        - --config-file
         - "config/{{ .Values.inferenceExtension.pluginsConfigFile }}"
         # https://pkg.go.dev/flag#hdr-Command_line_flag_syntax; space is only for non-bool flags
         - "--enablePprof={{ .Values.inferenceExtension.enablePprof }}"
@@ -43,11 +43,11 @@ spec:
         - "--modelServerMetricsScheme={{ .Values.inferenceExtension.modelServerMetricsScheme }}"
         - "--modelServerMetricsHttpsInsecureSkipVerify={{ .Values.inferenceExtension.modelServerMetricsHttpsInsecureSkipVerify }}"
         {{- if eq (.Values.inferencePool.modelServerType | default "vllm") "triton-tensorrt-llm" }}
-        - -totalQueuedRequestsMetric
+        - --total-queued-requests-metric
         - "nv_trt_llm_request_metrics{request_type=waiting}"
-        - -kvCacheUsagePercentageMetric
+        - --kv-cache-usage-percentage-metric
         - "nv_trt_llm_kv_cache_block_metrics{kv_cache_block_type=fraction}"
-        - -loraInfoMetric
+        - --lora-info-metric
         - "" # Set an empty metric to disable LoRA metric scraping as they are not supported by Triton yet.
         {{- end }}
         ports:
