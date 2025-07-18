@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling"
 	runserver "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/server"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
+	"sigs.k8s.io/gateway-api-inference-extension/version"
 )
 
 var (
@@ -203,6 +204,8 @@ func (r *Runner) Run(ctx context.Context) error {
 	flag.Parse()
 	initLogging(&opts)
 
+	setupLog.Info("GIE build", "commit-sha", version.CommitSHA, "build-ref", version.BuildRef)
+
 	// Validate flags
 	if err := validateFlags(); err != nil {
 		setupLog.Error(err, "Failed to validate flags")
@@ -264,7 +267,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	// --- Setup Metrics Server ---
 	customCollectors := []prometheus.Collector{collectors.NewInferencePoolMetricsCollector(datastore)}
 	metrics.Register(customCollectors...)
-	metrics.RecordInferenceExtensionInfo()
+	metrics.RecordInferenceExtensionInfo(version.CommitSHA, version.BuildRef)
 	// Register metrics handler.
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
