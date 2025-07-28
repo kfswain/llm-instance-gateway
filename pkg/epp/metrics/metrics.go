@@ -31,16 +31,16 @@ import (
 )
 
 const (
-	InferenceModelComponent = "inference_model"
-	InferencePoolComponent  = "inference_pool"
-	InferenceExtension      = "inference_extension"
+	InferenceObjectiveComponent = "inference_objective"
+	InferencePoolComponent      = "inference_pool"
+	InferenceExtension          = "inference_extension"
 )
 
 var (
 	// Inference Model Metrics
 	requestCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "request_total",
 			Help:      metricsutil.HelpMsgWithStability("Counter of inference model requests broken out for each model and target model.", compbasemetrics.ALPHA),
 		},
@@ -49,7 +49,7 @@ var (
 
 	requestErrCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "request_error_total",
 			Help:      metricsutil.HelpMsgWithStability("Counter of inference model requests errors broken out for each model and target model.", compbasemetrics.ALPHA),
 		},
@@ -58,7 +58,7 @@ var (
 
 	requestLatencies = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "request_duration_seconds",
 			Help:      metricsutil.HelpMsgWithStability("Inference model response latency distribution in seconds for each model and target model.", compbasemetrics.ALPHA),
 			Buckets: []float64{
@@ -71,7 +71,7 @@ var (
 
 	requestSizes = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "request_sizes",
 			Help:      metricsutil.HelpMsgWithStability("Inference model requests size distribution in bytes for each model and target model.", compbasemetrics.ALPHA),
 			// Use buckets ranging from 1000 bytes (1KB) to 10^9 bytes (1GB).
@@ -86,7 +86,7 @@ var (
 
 	responseSizes = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "response_sizes",
 			Help:      metricsutil.HelpMsgWithStability("Inference model responses size distribution in bytes for each model and target model.", compbasemetrics.ALPHA),
 			// Most models have a response token < 8192 tokens. Each token, in average, has 4 characters.
@@ -98,7 +98,7 @@ var (
 
 	inputTokens = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "input_tokens",
 			Help:      metricsutil.HelpMsgWithStability("Inference model input token count distribution for requests in each model.", compbasemetrics.ALPHA),
 			// Most models have a input context window less than 1 million tokens.
@@ -109,7 +109,7 @@ var (
 
 	outputTokens = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "output_tokens",
 			Help:      metricsutil.HelpMsgWithStability("Inference model output token count distribution for requests in each model.", compbasemetrics.ALPHA),
 			// Most models generates output less than 8192 tokens.
@@ -120,7 +120,7 @@ var (
 
 	runningRequests = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "running_requests",
 			Help:      metricsutil.HelpMsgWithStability("Inference model number of running requests in each model.", compbasemetrics.ALPHA),
 		},
@@ -130,7 +130,7 @@ var (
 	// NTPOT - Normalized Time Per Output Token
 	NormalizedTimePerOutputToken = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: InferenceModelComponent,
+			Subsystem: InferenceObjectiveComponent,
 			Name:      "normalized_time_per_output_token_seconds",
 			Help:      metricsutil.HelpMsgWithStability("Inference model latency divided by number of output tokens in seconds for each model and target model.", compbasemetrics.ALPHA),
 			// From few milliseconds per token to multiple seconds per token
