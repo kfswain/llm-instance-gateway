@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"runtime"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -141,6 +142,10 @@ var (
 	modelServerMetricsPath                    = flag.String("modelServerMetricsPath", "/metrics", "Path to scrape metrics from pods")
 	modelServerMetricsScheme                  = flag.String("modelServerMetricsScheme", "http", "Scheme to scrape metrics from pods")
 	modelServerMetricsHttpsInsecureSkipVerify = flag.Bool("modelServerMetricsHttpsInsecureSkipVerify", true, "When using 'https' scheme for 'modelServerMetricsScheme', configure 'InsecureSkipVerify' (default to true)")
+	shortCircuit                              = flag.Int(
+		"shortCircuit",
+		1,
+		"If true, the server will not call the backend and will return a response immediately.")
 
 	setupLog = ctrl.Log.WithName("setup")
 )
@@ -208,6 +213,8 @@ func (r *Runner) Run(ctx context.Context) error {
 		setupLog.Error(err, "Failed to validate flags")
 		return err
 	}
+
+	setupLog.Info("CPUs available", "count", runtime.NumCPU())
 
 	// Print all flag values
 	flags := make(map[string]any)
@@ -320,6 +327,7 @@ func (r *Runner) Run(ctx context.Context) error {
 		RefreshPrometheusMetricsInterval:         *refreshPrometheusMetricsInterval,
 		Director:                                 director,
 		SaturationDetector:                       saturationDetector,
+		ShortCircuit:                             *shortCircuit,
 	}
 	if err := serverRunner.SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "Failed to setup EPP controllers")

@@ -57,6 +57,7 @@ type ExtProcServerRunner struct {
 	// This should only be used in tests. We won't need this once we do not inject metrics in the tests.
 	// TODO:(https://github.com/kubernetes-sigs/gateway-api-inference-extension/issues/432) Cleanup
 	TestPodMetricsClient *backendmetrics.FakePodMetricsClient
+	ShortCircuit         int // If true, the server will not call the backend and will return a response immediately.
 }
 
 // Default values for CLI flags in main
@@ -160,6 +161,7 @@ func (r *ExtProcServerRunner) AsRunnable(logger logr.Logger) manager.Runnable {
 			r.DestinationEndpointHintKey,
 			r.Datastore,
 			r.Director,
+			r.ShortCircuit,
 		)
 		extProcPb.RegisterExternalProcessorServer(
 			srv,

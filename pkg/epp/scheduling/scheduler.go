@@ -54,6 +54,7 @@ func (s *Scheduler) Schedule(ctx context.Context, request *types.LLMRequest, can
 
 	scheduleStart := time.Now()
 	defer func() {
+		loggerDebug.Info("Scheduler finished processing", "request", request, "duration", time.Since(scheduleStart).Milliseconds())
 		metrics.RecordSchedulerE2ELatency(time.Since(scheduleStart))
 	}()
 

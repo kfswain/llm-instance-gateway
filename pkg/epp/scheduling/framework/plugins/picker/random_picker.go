@@ -23,12 +23,9 @@ import (
 	"math/rand"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/framework"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
-	logutil "sigs.k8s.io/gateway-api-inference-extension/pkg/epp/util/logging"
 )
 
 const (
@@ -82,8 +79,8 @@ func (p *RandomPicker) TypedName() plugins.TypedName {
 
 // Pick selects random pod(s) from the list of candidates.
 func (p *RandomPicker) Pick(ctx context.Context, _ *types.CycleState, scoredPods []*types.ScoredPod) *types.ProfileRunResult {
-	log.FromContext(ctx).V(logutil.DEBUG).Info(fmt.Sprintf("Selecting maximum '%d' pods from %d candidates randomly: %+v", p.maxNumOfEndpoints,
-		len(scoredPods), scoredPods))
+	// log.FromContext(ctx).V(logutil.DEBUG).Info(fmt.Sprintf("Selecting maximum '%d' pods from %d candidates randomly: %+v", p.maxNumOfEndpoints,
+	// 	len(scoredPods), scoredPods))
 
 	// Shuffle in-place
 	p.randomGenerator.Shuffle(len(scoredPods), func(i, j int) {

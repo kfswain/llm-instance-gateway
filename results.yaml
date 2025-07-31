@@ -1,0 +1,191 @@
+
+# Benchmark Results Summary - as is
+test1:
+  benchmark_http_client.latency_2xx (1217800 samples)
+    min: 0s 035ms 807us | mean: 3s 695ms 302us | max: 34s 272ms 706us | pstdev: 4s 037ms 948us
+
+    Percentile  Count       Value          
+    0.5         608915      1s 860ms 239us 
+    0.75        913356      5s 620ms 629us 
+    0.8         974244      6s 955ms 728us 
+    0.9         1096020     9s 975ms 103us 
+    0.95        1156920     12s 132ms 548us
+    0.990625    1206386     16s 853ms 762us
+    0.99902344  1216611     21s 414ms 019us
+
+  benchmark_http_client.latency_5xx (220750 samples)
+    min: 0s 032ms 029us | mean: 21s 074ms 856us | max: 41s 697ms 673us | pstdev: 5s 786ms 759us
+
+    Percentile  Count       Value          
+    0.5         110378      21s 517ms 828us
+    0.75        165572      25s 507ms 659us
+    0.8         176615      26s 312ms 966us
+    0.9         198683      27s 784ms 118us
+    0.95        209714      29s 022ms 486us
+    0.990625    218681      31s 721ms 521us
+    0.99902344  220536      35s 064ms 381us
+
+  Queueing and connection setup latency (1463733 samples)
+    min: 0s 000ms 017us | mean: 0s 002ms 358us | max: 3s 111ms 649us | pstdev: 0s 027ms 206us
+
+    Percentile  Count       Value          
+    0.5         731870      0s 000ms 069us 
+    0.75        1097827     0s 000ms 121us 
+    0.8         1171005     0s 000ms 140us 
+    0.9         1317364     0s 000ms 337us 
+    0.95        1390547     0s 002ms 403us 
+    0.990625    1450012     0s 056ms 018us 
+    0.99902344  1462304     0s 277ms 331us 
+
+  Request start to response end (1438550 samples)
+    min: 0s 032ms 028us | mean: 6s 362ms 247us | max: 41s 697ms 673us | pstdev: 7s 627ms 537us
+
+    Percentile  Count       Value          
+    0.5         719290      2s 435ms 055us 
+    0.75        1078925     9s 369ms 026us 
+    0.8         1150844     11s 584ms 143us
+    0.9         1294711     19s 405ms 996us
+    0.95        1366640     24s 272ms 437us
+    0.990625    1425065     28s 700ms 573us
+    0.99902344  1437147     32s 351ms 715us
+
+  Response body size in bytes (1452205 samples)
+    min: 0 | mean: 377.8257739093311 | max: 498 | pstdev: 161.52021263247406
+
+  Response header size in bytes (1438551 samples)
+    min: 94 | mean: 122.708907782901 | max: 126 | pstdev: 7.880074393661329
+
+  Initiation to completion (2988440 samples)
+    min: 0s 000ms 017us | mean: 3s 074ms 166us | max: 41s 697ms 673us | pstdev: 6s 183ms 766us
+
+    Percentile  Count       Value          
+    0.5         1494220     0s 000ms 204us 
+    0.75        2241335     2s 252ms 472us 
+    0.8         2390759     4s 107ms 272us 
+    0.9         2689609     11s 247ms 550us
+    0.95        2839022     19s 120ms 783us
+    0.990625    2960433     27s 292ms 336us
+    0.99902344  2985527     31s 191ms 990us
+
+  Counter                                 Value       Per second
+  benchmark.http_2xx                      1217800     4059.33
+  benchmark.http_5xx                      220750      735.83
+  benchmark.pool_connection_failure       764         2.55
+  benchmark.pool_overflow                 1535471     5118.24
+  benchmark.stream_resets                 13655       45.52
+  cluster_manager.cluster_added           100         0.33
+  default.total_match_count               100         0.33
+  membership_change                       100         0.33
+  runtime.load_success                    1           0.00
+  runtime.override_dir_not_exists         1           0.00
+  upstream_cx_close_notify                3744        12.48
+  upstream_cx_connect_fail                939         3.13
+  upstream_cx_destroy                     4898        16.33
+  upstream_cx_destroy_local               3724        12.41
+  upstream_cx_destroy_remote              1174        3.91
+  upstream_cx_destroy_remote_with_active_rq235         0.78
+  upstream_cx_destroy_with_active_rq      235         0.78
+  upstream_cx_http2_total                 5122        17.07
+  upstream_cx_protocol_error              3553        11.84
+  upstream_cx_rx_bytes_total              586114855   1953715.93
+  upstream_cx_total                       5122        17.07
+  upstream_cx_tx_bytes_total              695729090   2319096.66
+  upstream_rq_pending_failure_eject       3772        12.57
+  upstream_rq_pending_overflow            1535471     5118.24
+  upstream_rq_pending_total               81516       271.72
+  upstream_rq_total                       1463733     4879.11
+
+
+#Commenting out log lines only in random-picker plugin & run filter plugin func:
+test2:
+  benchmark_http_client.latency_2xx (2555125 samples)
+    min: 0s 035ms 639us | mean: 10s 195ms 416us | max: 53s 752ms 102us | pstdev: 9s 233ms 045us
+
+    Percentile  Count       Value          
+    0.5         1277567     9s 199ms 157us 
+    0.75        1916375     17s 507ms 024us
+    0.8         2044107     19s 326ms 304us
+    0.9         2299622     23s 769ms 120us
+    0.95        2427376     26s 701ms 987us
+    0.990625    2531174     30s 230ms 446us
+    0.99902344  2552631     34s 854ms 666us
+
+  benchmark_http_client.latency_5xx (131893 samples)
+    min: 0s 709ms 558us | mean: 35s 940ms 907us | max: 59s 995ms 324us | pstdev: 5s 516ms 096us
+
+    Percentile  Count       Value          
+    0.5         65970       34s 802ms 237us
+    0.75        98943       38s 679ms 871us
+    0.8         105515      39s 803ms 944us
+    0.9         118706      43s 090ms 182us
+    0.95        125302      46s 105ms 886us
+    0.990625    130659      52s 546ms 240us
+    0.99902344  131765      58s 135ms 150us
+
+  Queueing and connection setup latency (2881589 samples)
+    min: 0s 000ms 012us | mean: 0s 000ms 639us | max: 0s 348ms 602us | pstdev: 0s 006ms 100us
+
+    Percentile  Count       Value          
+    0.5         1440822     0s 000ms 079us 
+    0.75        2161217     0s 000ms 124us 
+    0.8         2305309     0s 000ms 142us 
+    0.9         2593444     0s 000ms 305us 
+    0.95        2737514     0s 000ms 614us 
+    0.990625    2854575     0s 011ms 991us 
+    0.99902344  2878776     0s 104ms 919us 
+
+  Request start to response end (2687018 samples)
+    min: 0s 035ms 639us | mean: 11s 459ms 139us | max: 59s 995ms 324us | pstdev: 10s 653ms 468us
+
+    Percentile  Count       Value          
+    0.5         1343527     10s 066ms 853us
+    0.75        2015340     18s 880ms 659us
+    0.8         2149714     21s 023ms 948us
+    0.9         2418357     26s 468ms 155us
+    0.95        2552671     30s 986ms 469us
+    0.990625    2661830     40s 034ms 631us
+    0.99902344  2684394     49s 891ms 246us
+
+  Response body size in bytes (2693680 samples)
+    min: 0 | mean: 425.6993094948178 | max: 498 | pstdev: 98.73010888448819
+
+  Response header size in bytes (2687193 samples)
+    min: 94 | mean: 125.01660059400274 | max: 126 | pstdev: 4.326140258104886
+
+  Initiation to completion (2811916 samples)
+    min: 0s 000ms 018us | mean: 10s 978ms 996us | max: 59s 995ms 324us | pstdev: 10s 673ms 708us
+
+    Percentile  Count       Value          
+    0.5         1405980     9s 290ms 907us 
+    0.75        2108972     18s 489ms 540us
+    0.8         2249576     20s 618ms 149us
+    0.9         2530754     26s 183ms 991us
+    0.95        2671342     30s 709ms 645us
+    0.990625    2785559     39s 854ms 276us
+    0.99902344  2809171     49s 698ms 308us
+
+  Counter                                 Value       Per second
+  benchmark.http_2xx                      2555125     8517.08
+  benchmark.http_5xx                      132068      440.23
+  benchmark.pool_connection_failure       41          0.14
+  benchmark.pool_overflow                 118370      394.57
+  benchmark.stream_resets                 6487        21.62
+  cluster_manager.cluster_added           100         0.33
+  default.total_match_count               100         0.33
+  membership_change                       100         0.33
+  runtime.load_success                    1           0.00
+  runtime.override_dir_not_exists         1           0.00
+  upstream_cx_connect_fail                364         1.21
+  upstream_cx_destroy                     431         1.44
+  upstream_cx_destroy_remote              431         1.44
+  upstream_cx_destroy_remote_with_active_rq67          0.22
+  upstream_cx_destroy_with_active_rq      67          0.22
+  upstream_cx_http2_total                 2431        8.10
+  upstream_cx_rx_bytes_total              1219330901  4064435.71
+  upstream_cx_total                       2431        8.10
+  upstream_cx_tx_bytes_total              1368985293  4563283.60
+  upstream_rq_pending_failure_eject       6528        21.76
+  upstream_rq_pending_overflow            118370      394.57
+  upstream_rq_pending_total               61308       204.36
+  upstream_rq_total                       2881589     9605.30
+

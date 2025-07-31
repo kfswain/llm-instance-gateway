@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,12 +44,13 @@ const (
 	bodyByteLimit = 62000
 )
 
-func NewStreamingServer(destinationEndpointHintMetadataNamespace, destinationEndpointHintKey string, datastore Datastore, director Director) *StreamingServer {
+func NewStreamingServer(destinationEndpointHintMetadataNamespace, destinationEndpointHintKey string, datastore Datastore, director Director, shortCircuit int) *StreamingServer {
 	return &StreamingServer{
 		destinationEndpointHintMetadataNamespace: destinationEndpointHintMetadataNamespace,
 		destinationEndpointHintKey:               destinationEndpointHintKey,
 		director:                                 director,
 		datastore:                                datastore,
+		shortCircuit:                             shortCircuit,
 	}
 }
 
@@ -73,6 +75,7 @@ type StreamingServer struct {
 	destinationEndpointHintMetadataNamespace string
 	datastore                                Datastore
 	director                                 Director
+	shortCircuit                             int
 }
 
 // RequestContext stores context information during the life time of an HTTP request.
@@ -93,6 +96,7 @@ type RequestContext struct {
 	ResponseStatusCode        string
 	RequestRunning            bool
 	Request                   *Request
+	ShortCircuit              int
 
 	SchedulingRequest *schedulingtypes.LLMRequest
 
@@ -204,14 +208,45 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 
 			// Message is buffered, we can read and decode.
 			if v.RequestBody.EndOfStream {
+				if s.shortCircuit == 1 {
+					pod := s.director.GetRandomPod()
+					if pod == nil {
+						return errutil.Error{Code: errutil.Internal, Msg: "no pods available in datastore"}
+					}
+					pool, err := s.datastore.PoolGet()
+					if err != nil {
+						return err
+					}
+
+					err = json.Unmarshal(body, &reqCtx.Request.Body)
+					if err != nil {
+						if logger.V(logutil.DEBUG).Enabled() {
+							err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
+							logger.V(logutil.DEBUG).Error(err, "Error unmarshaling request body", "body", string(body))
+						} else {
+							err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body"}
+							logger.V(logutil.DEFAULT).Error(err, "Error unmarshaling request body", "body", string(body))
+						}
+						break
+					}
+
+					reqCtx.TargetEndpoint = pod.Address + ":" + strconv.Itoa(int(pool.Spec.TargetPortNumber))
+					reqCtx.RequestSize = 0
+					reqCtx.reqHeaderResp = s.generateRequestHeaderResponse(reqCtx)
+					reqCtx.reqBodyResp = s.generateRequestBodyResponses(body)
+					logger.Info("Short circuiting request", "targetEndpoint", reqCtx.TargetEndpoint)
+				}
 				loggerTrace.Info("decoding")
 				err = json.Unmarshal(body, &reqCtx.Request.Body)
 				if err != nil {
-					logger.V(logutil.DEFAULT).Error(err, "Error unmarshaling request body")
-					err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
+					if logger.V(logutil.DEBUG).Enabled() {
+						err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
+					} else {
+						err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body"}
+					}
 					break
 				}
-
+				reqCtx.ShortCircuit = s.shortCircuit
 				// Body stream complete. Allocate empty slice for response to use.
 				body = []byte{}
 

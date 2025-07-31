@@ -122,21 +122,25 @@ func (p *SchedulerProfile) Run(ctx context.Context, request *types.LLMRequest, c
 }
 
 func (p *SchedulerProfile) runFilterPlugins(ctx context.Context, request *types.LLMRequest, cycleState *types.CycleState, pods []types.Pod) []types.Pod {
-	loggerDebug := log.FromContext(ctx).V(logutil.DEBUG)
+	fullBefore := time.Now()
+	defer func() {
+		log.FromContext(ctx).V(logutil.DEBUG).Info("Filter processing completed", "duration", time.Since(fullBefore).Milliseconds())
+	}()
+	//loggerDebug := log.FromContext(ctx).V(logutil.DEBUG)
 	filteredPods := pods
-	loggerDebug.Info("Before running filter plugins", "pods", filteredPods)
+	//loggerDebug.Info("Before running filter plugins", "pods", filteredPods)
 
 	for _, filter := range p.filters {
-		loggerDebug.Info("Running filter plugin", "plugin", filter.TypedName().Type)
+		//loggerDebug.Info("Running filter plugin", "plugin", filter.TypedName().Type)
 		before := time.Now()
 		filteredPods = filter.Filter(ctx, cycleState, request, filteredPods)
 		metrics.RecordSchedulerPluginProcessingLatency(FilterPluginType, filter.TypedName().Type, time.Since(before))
-		loggerDebug.Info("Filter plugin result", "plugin", filter.TypedName().Type, "pods", filteredPods)
+		//loggerDebug.Info("Filter plugin result", "plugin", filter.TypedName().Type, "pods", filteredPods)
 		if len(filteredPods) == 0 {
 			break
 		}
 	}
-	loggerDebug.Info("After running filter plugins")
+	//loggerDebug.Info("After running filter plugins")
 
 	return filteredPods
 }
