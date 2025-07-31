@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -142,8 +143,13 @@ func (d *Director) HandleRequest(ctx context.Context, reqCtx *handlers.RequestCo
 		return reqCtx, err
 	}
 
+	runtime.SetBlockProfileRate(1)
+	runtime.SetMutexProfileFraction(1)
+	current := time.Now()
 	// --- 3. Call Scheduler (with the relevant candidate pods) ---
 	candidatePods := d.getCandidatePodsForScheduling(ctx, reqCtx.Request.Metadata)
+	candidatePodDuration := time.Since(current)
+	logger.V(logutil.DEFAULT).Info("Scheduling completed", "duration", candidatePodDuration.Milliseconds())
 	if len(candidatePods) == 0 {
 		return reqCtx, errutil.Error{Code: errutil.ServiceUnavailable, Msg: "failed to find candidate pods for serving the request"}
 	}
@@ -152,6 +158,8 @@ func (d *Director) HandleRequest(ctx context.Context, reqCtx *handlers.RequestCo
 		return reqCtx, errutil.Error{Code: errutil.InferencePoolResourceExhausted, Msg: fmt.Errorf("failed to find target pod: %w", err).Error()}
 	}
 
+	schedulingDuration := time.Since(current)
+	logger.V(logutil.DEFAULT).Info("Scheduling completed", "duration", schedulingDuration.Milliseconds()-candidatePodDuration.Milliseconds())
 	// --- 4. Prepare Request (Populates RequestContext and call PreRequest plugins) ---
 	// Insert target endpoint to instruct Envoy to route requests to the specified target pod and attach the port number.
 	// Invoke PreRequest registered plugins.
@@ -160,6 +168,8 @@ func (d *Director) HandleRequest(ctx context.Context, reqCtx *handlers.RequestCo
 		return reqCtx, err
 	}
 
+	preperationDuration := time.Since(current)
+	logger.V(logutil.DEFAULT).Info("Request preparation completed", "duration", preperationDuration.Milliseconds()-schedulingDuration.Milliseconds())
 	return reqCtx, nil
 }
 
@@ -241,11 +251,14 @@ func (d *Director) prepareRequest(ctx context.Context, reqCtx *handlers.RequestC
 	// TODO should use multiple destinations according to epp protocol. current code assumes a single target
 	targetPod := result.ProfileResults[result.PrimaryProfileName].TargetPods[0].GetPod()
 
+	current := time.Now()
 	pool, err := d.datastore.PoolGet()
 	if err != nil {
 		return reqCtx, err
 	}
 	targetPort := int(pool.Spec.TargetPortNumber)
+	schedulingDuration := time.Since(current)
+	logger.V(logutil.DEFAULT).Info("Pool get latency", "duration", schedulingDuration.Milliseconds())
 
 	endpoint := net.JoinHostPort(targetPod.Address, strconv.Itoa(targetPort))
 	logger.V(logutil.DEFAULT).Info("Request handled", "model", reqCtx.Model, "targetModel", reqCtx.ResolvedTargetModel, "endpoint", targetPod)
@@ -253,7 +266,10 @@ func (d *Director) prepareRequest(ctx context.Context, reqCtx *handlers.RequestC
 	reqCtx.TargetPod = targetPod
 	reqCtx.TargetEndpoint = endpoint
 
+	current = time.Now()
 	d.runPreRequestPlugins(ctx, reqCtx.SchedulingRequest, result, targetPort)
+	schedulingDuration = time.Since(current)
+	logger.V(logutil.DEFAULT).Info("Pool get latency", "duration", schedulingDuration.Milliseconds())
 
 	return reqCtx, nil
 }

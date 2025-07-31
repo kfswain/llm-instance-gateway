@@ -122,6 +122,10 @@ func (p *SchedulerProfile) Run(ctx context.Context, request *types.LLMRequest, c
 }
 
 func (p *SchedulerProfile) runFilterPlugins(ctx context.Context, request *types.LLMRequest, cycleState *types.CycleState, pods []types.Pod) []types.Pod {
+	fullBefore := time.Now()
+	defer func() {
+		log.FromContext(ctx).V(logutil.DEBUG).Info("Filter processing completed", "duration", time.Since(fullBefore).Milliseconds())
+	}()
 	loggerDebug := log.FromContext(ctx).V(logutil.DEBUG)
 	filteredPods := pods
 	loggerDebug.Info("Before running filter plugins", "pods", filteredPods)

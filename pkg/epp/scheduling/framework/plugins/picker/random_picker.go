@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/plugins"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/framework"
 	"sigs.k8s.io/gateway-api-inference-extension/pkg/epp/scheduling/types"
@@ -58,7 +57,6 @@ func NewRandomPicker(maxNumOfEndpoints int) *RandomPicker {
 	return &RandomPicker{
 		typedName:         plugins.TypedName{Type: RandomPickerType, Name: RandomPickerType},
 		maxNumOfEndpoints: maxNumOfEndpoints,
-		randomGenerator:   rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -66,7 +64,7 @@ func NewRandomPicker(maxNumOfEndpoints int) *RandomPicker {
 type RandomPicker struct {
 	typedName         plugins.TypedName
 	maxNumOfEndpoints int
-	randomGenerator   *rand.Rand // randomGenerator for randomly pick endpoint on tie-break
+	//randomGenerator   *rand.Rand // randomGenerator for randomly pick endpoint on tie-break
 }
 
 // WithName sets the name of the picker.
@@ -82,11 +80,12 @@ func (p *RandomPicker) TypedName() plugins.TypedName {
 
 // Pick selects random pod(s) from the list of candidates.
 func (p *RandomPicker) Pick(ctx context.Context, _ *types.CycleState, scoredPods []*types.ScoredPod) *types.ProfileRunResult {
-	log.FromContext(ctx).V(logutil.DEBUG).Info(fmt.Sprintf("Selecting maximum '%d' pods from %d candidates randomly: %+v", p.maxNumOfEndpoints,
-		len(scoredPods), scoredPods))
+	log.FromContext(ctx).V(logutil.DEBUG).Info("Selecting maximum pods from candidates randomly", "endpoints", p.maxNumOfEndpoints,
+		"scoredPodsNum", len(scoredPods), "scoredPods", scoredPods)
 
+	randomGenerator := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// Shuffle in-place
-	p.randomGenerator.Shuffle(len(scoredPods), func(i, j int) {
+	randomGenerator.Shuffle(len(scoredPods), func(i, j int) {
 		scoredPods[i], scoredPods[j] = scoredPods[j], scoredPods[i]
 	})
 

@@ -29,6 +29,8 @@ spec:
         - {{ .Release.Namespace }}
         - --v
         - "{{ .Values.inferenceExtension.logVerbosity | default "3" }}"
+        - --zap-encoder
+        - "json"
         - --grpcPort
         - "9002"
         - -grpcHealthPort
