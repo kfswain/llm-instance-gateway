@@ -59,7 +59,7 @@ func TestServer(t *testing.T) {
 		ctx, cancel, ds, _ := utils.PrepareForTestStreamingServer([]*v1alpha2.InferenceModel{model},
 			[]*v1.Pod{{ObjectMeta: metav1.ObjectMeta{Name: podName}}}, "test-pool1", namespace, poolPort)
 
-		streamingServer := handlers.NewStreamingServer(namespace, destinationEndpointHintKey, ds, director)
+		streamingServer := handlers.NewStreamingServer(namespace, destinationEndpointHintKey, ds, director, 0)
 
 		testListener, errChan := utils.SetupTestStreamingServer(t, ctx, ds, streamingServer)
 		process, conn := utils.GetStreamingServerClient(ctx, t)

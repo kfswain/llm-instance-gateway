@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"runtime"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -208,6 +209,8 @@ func (r *Runner) Run(ctx context.Context) error {
 		setupLog.Error(err, "Failed to validate flags")
 		return err
 	}
+
+	setupLog.Info("CPUs available", "count", runtime.NumCPU())
 
 	// Print all flag values
 	flags := make(map[string]any)

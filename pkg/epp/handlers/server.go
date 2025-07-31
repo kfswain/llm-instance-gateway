@@ -207,11 +207,13 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 				loggerTrace.Info("decoding")
 				err = json.Unmarshal(body, &reqCtx.Request.Body)
 				if err != nil {
-					logger.V(logutil.DEFAULT).Error(err, "Error unmarshaling request body")
-					err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
+					if logger.V(logutil.DEBUG).Enabled() {
+						err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
+					} else {
+						err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body"}
+					}
 					break
 				}
-
 				// Body stream complete. Allocate empty slice for response to use.
 				body = []byte{}
 
