@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,6 +51,7 @@ func NewStreamingServer(destinationEndpointHintMetadataNamespace, destinationEnd
 		destinationEndpointHintKey:               destinationEndpointHintKey,
 		director:                                 director,
 		datastore:                                datastore,
+		shortCircuit:                             true, // Short circuit is enabled by default.
 	}
 }
 
@@ -74,6 +76,7 @@ type StreamingServer struct {
 	destinationEndpointHintMetadataNamespace string
 	datastore                                Datastore
 	director                                 Director
+	shortCircuit                             bool
 }
 
 // RequestContext stores context information during the life time of an HTTP request.
@@ -205,38 +208,53 @@ func (s *StreamingServer) Process(srv extProcPb.ExternalProcessor_ProcessServer)
 
 			// Message is buffered, we can read and decode.
 			if v.RequestBody.EndOfStream {
-				loggerTrace.Info("decoding")
-				err = json.Unmarshal(body, &reqCtx.Request.Body)
-				if err != nil {
-					if logger.V(logutil.DEBUG).Enabled() {
-						err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
-					} else {
-						err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body"}
+				if s.shortCircuit {
+					pod := s.director.GetRandomPod()
+					if pod == nil {
+						return errutil.Error{Code: errutil.Internal, Msg: "no pods available in datastore"}
 					}
-					break
+					pool, err := s.datastore.PoolGet()
+					if err != nil {
+						return err
+					}
+					reqCtx.TargetEndpoint = pod.Address + ":" + strconv.Itoa(int(pool.Spec.TargetPortNumber))
+					reqCtx.RequestSize = 0
+					reqCtx.reqHeaderResp = s.generateRequestHeaderResponse(reqCtx)
+					reqCtx.reqBodyResp = s.generateRequestBodyResponses(body)
+					logger.Info("Short circuiting request", "targetEndpoint", reqCtx.TargetEndpoint)
 				}
+				// loggerTrace.Info("decoding")
+				// err = json.Unmarshal(body, &reqCtx.Request.Body)
+				// if err != nil {
+				// 	if logger.V(logutil.DEBUG).Enabled() {
+				// 		err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body: " + string(body)}
+				// 	} else {
+				// 		err = errutil.Error{Code: errutil.BadRequest, Msg: "Error unmarshaling request body"}
+				// 	}
+				// 	break
+				// }
 
-				// Body stream complete. Allocate empty slice for response to use.
-				body = []byte{}
+				// // Body stream complete. Allocate empty slice for response to use.
+				// body = []byte{}
 
-				reqCtx, err = s.director.HandleRequest(ctx, reqCtx)
-				if err != nil {
-					logger.V(logutil.DEFAULT).Error(err, "Error handling request")
-					break
-				}
+				// reqCtx, err = s.director.HandleRequest(ctx, reqCtx)
+				// if err != nil {
+				// 	logger.V(logutil.DEFAULT).Error(err, "Error handling request")
+				// 	break
+				// }
 
-				// Populate the ExtProc protocol responses for the request body.
-				requestBodyBytes, err := json.Marshal(reqCtx.Request.Body)
-				if err != nil {
-					logger.V(logutil.DEFAULT).Error(err, "Error marshalling request body")
-					break
-				}
-				reqCtx.RequestSize = len(requestBodyBytes)
-				reqCtx.reqHeaderResp = s.generateRequestHeaderResponse(reqCtx)
-				reqCtx.reqBodyResp = s.generateRequestBodyResponses(requestBodyBytes)
+				// // Populate the ExtProc protocol responses for the request body.
+				// requestBodyBytes, err := json.Marshal(reqCtx.Request.Body)
+				// if err != nil {
+				// 	logger.V(logutil.DEFAULT).Error(err, "Error marshalling request body")
+				// 	break
+				// }
+				// reqCtx.RequestSize = len(requestBodyBytes)
+				// reqCtx.reqHeaderResp = s.generateRequestHeaderResponse(reqCtx)
+				// reqCtx.reqBodyResp = s.generateRequestBodyResponses(body)
 
-				metrics.RecordRequestCounter(reqCtx.Model, reqCtx.ResolvedTargetModel)
-				metrics.RecordRequestSizes(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.RequestSize)
+				// metrics.RecordRequestCounter(reqCtx.Model, reqCtx.ResolvedTargetModel)
+				// metrics.RecordRequestSizes(reqCtx.Model, reqCtx.ResolvedTargetModel, reqCtx.RequestSize)
 			}
 		case *extProcPb.ProcessingRequest_RequestTrailers:
 			// This is currently unused.

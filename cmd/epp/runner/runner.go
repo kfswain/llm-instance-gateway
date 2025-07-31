@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"runtime"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -213,7 +214,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	initLogging(&opts)
 
 	setupLog.Info("GIE build", "commit-sha", version.CommitSHA, "build-ref", version.BuildRef)
-
+	setupLog.Info("Stats", "num-cpus", runtime.NumCPU())
 	// Validate flags
 	if err := validateFlags(); err != nil {
 		setupLog.Error(err, "Failed to validate flags")

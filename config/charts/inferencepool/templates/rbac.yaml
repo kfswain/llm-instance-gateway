@@ -39,6 +39,9 @@ metadata:
   labels:
     {{- include "gateway-api-inference-extension.labels" . | nindent 4 }}
 rules:
+- apiGroups: ["inference.networking.k8s.io"]
+  resources: ["inferencepools"]
+  verbs: ["get", "watch", "list"]
 - apiGroups: ["inference.networking.x-k8s.io"]
   resources: ["inferenceobjectives", "inferencepools"]
   verbs: ["get", "watch", "list"]

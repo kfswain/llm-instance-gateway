@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-gateway-ext-proc
+  namespace: team1
+  labels:
+    app: inference-gateway-ext-proc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference-gateway-ext-proc
+  template:
+    metadata:
+      labels:
+        app: inference-gateway-ext-proc
+    spec:
+      initContainers:
+      - name: config-writer
+        image: busybox:1.36
+        command:
+        - "sh"
+        - "-c"
+        - |
+          cat <<'EOF' > /config/default-plugins.yaml
+          apiVersion: inference.networking.x-k8s.io/v1alpha1
+          kind: EndpointPickerConfig
+          plugins:
+          - type: low-queue-filter
+            parameters:
+              threshold: 128
+          - type: lora-affinity-filter
+            parameters:
+              threshold: 0.999
+          - type: least-queue-filter
+          - type: least-kv-cache-filter
+          - type: decision-tree-filter
+            name: low-latency-filter
+            parameters:
+              current:
+                pluginRef: low-queue-filter
+              nextOnSuccess:
+                decisionTree:
+                  current:
+                    pluginRef: lora-affinity-filter
+                  nextOnSuccessOrFailure:
+                    decisionTree:
+                      current:
+                        pluginRef: least-queue-filter
+                      nextOnSuccessOrFailure:
+                        decisionTree:
+                          current:
+                            pluginRef: least-kv-cache-filter
+              nextOnFailure:
+                decisionTree:
+                  current:
+                    pluginRef: least-queue-filter
+                  nextOnSuccessOrFailure:
+                    decisionTree:
+                      current:
+                        pluginRef: lora-affinity-filter
+                      nextOnSuccessOrFailure:
+                        decisionTree:
+                          current:
+                            pluginRef: least-kv-cache-filter
+          - type: random-picker
+            parameters:
+              maxNumOfEndpoints: 1
+          - type: single-profile-handler
+          schedulingProfiles:
+          - name: default
+            plugins:
+            - pluginRef: low-latency-filter
+            - pluginRef: random-picker
+          EOF
+        volumeMounts:
+        - name: plugins-config-volume
+          mountPath: "/config"
+      nodeSelector:
+        node.kubernetes.io/instance-type: c3-standard-88
+      containers:
+      - name: inference-gateway-ext-proc
+        image: us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/epp:v0.5.1
+        imagePullPolicy: Always
+        args:
+        - --poolName
+        - "test-inference-pool"
+        - --poolNamespace
+        - "team1"
+        - -v
+        - "4"
+        - --grpcPort
+        - "9002"
+        - --grpcHealthPort
+        - "9003"
+        - "--configFile"
+        - "/config/default-plugins.yaml"
+        ports:
+        - containerPort: 9002
+        - containerPort: 9003
+        - name: metrics
+          containerPort: 9090
+        livenessProbe:
+          grpc:
+            port: 9003
+            service: inference-extension
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          grpc:
+            port: 9003
+            service: inference-extension
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: plugins-config-volume
+          mountPath: "/config"
+      volumes:
+      - name: plugins-config-volume
+        emptyDir: {}
