@@ -24,7 +24,7 @@ spec:
         - --max-loras
         - "2"
         - --lora-modules
-        - '{"name": "food-review-1"}'
+        - '{"name": "food-review"}'
         env:
         - name: POD_NAME
           valueFrom:

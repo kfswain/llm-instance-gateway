@@ -7,7 +7,7 @@ Before we dive into the implementation, let’s recap how an InferencePool works
 
 <img src="/images/inference-overview.svg" alt="Overview of API integration" class="center" width="1000" />
 
-**InferencePool** represents a set of Inference-focused Pods and an extension that will be used to route to them. The InferencePool introduces a new type of backend within the Gateway API resource model. Instead of targeting Services, a Gateway can route traffic to an InferencePool. This InferencePool then becomes responsible for intelligent routing to the underlying model server pods based on the associated InferenceModel configurations. 
+**InferencePool** represents a set of Inference-focused Pods and an extension that will be used to route to them. The InferencePool introduces a new type of backend within the Gateway API resource model. Instead of targeting Services, a Gateway can route traffic to an InferencePool. This InferencePool then becomes responsible for intelligent routing to the underlying model server pods. 
 
 Here is an example of how to route traffic to an InferencePool using an HTTPRoute:
 ```
@@ -156,7 +156,6 @@ An example of a similar approach is Kuadrant’s [WASM Shim](https://github.com/
 Here are some tips for testing your controller end-to-end:
 
 - **Focus on Key Scenarios**: Add common scenarios like creating, updating, and deleting InferencePool resources, as well as different routing rules that target InferencePool backends.
-- **Verify Routing Behaviors**: Design more complex routing scenarios and verify that requests are correctly routed to the appropriate model server pods within the InferencePool based on the InferenceModel configuration.
 - **Test Error Handling**: Verify that the controller correctly handles scenarios like unsupported model names or resource constraints (if criticality-based shedding is implemented). Test with state transitions (such as constant requests while Pods behind EPP are being replaced and Pods behind InferencePool are being replaced) to ensure that the system is resilient to failures and can automatically recover by redirecting traffic to healthy Pods.
 - **Using Reference EPP Implementation + Echoserver**: You can use the [reference EPP implementation](https://github.com/kubernetes-sigs/gateway-api-inference-extension/tree/main/pkg/epp) for testing your controller end-to-end. Instead of a full-fledged model server, a simple mock server (like the [echoserver](https://github.com/kubernetes-sigs/ingress-controller-conformance/tree/master/images/echoserver)) can be very useful for verifying routing to ensure the correct pod received the request. 
 - **Performance Test**: Run end-to-end [benchmarks](https://gateway-api-inference-extension.sigs.k8s.io/performance/benchmark/) to make sure that your inference gateway can achieve the latency target that is desired.

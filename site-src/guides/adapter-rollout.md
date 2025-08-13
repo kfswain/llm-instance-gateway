@@ -52,31 +52,7 @@ The new adapter version is applied to the model servers live, without requiring 
 
 ### Direct traffic to the new adapter version
 
-Modify the InferenceModel to configure a canary rollout with traffic splitting. In this example, 10% of traffic for food-review model will be sent to the new ***food-review-2*** adapter.
-
-
-```bash
-kubectl edit inferencemodel food-review
-```
-
-Change the targetModels list in InferenceModel to match the following:
-
-
-```yaml
-apiVersion: inference.networking.x-k8s.io/v1alpha2
-kind: InferenceModel
-metadata:
-  name: food-review
-spec:
-  criticality: 1
-  poolRef:
-    name: vllm-llama3-8b-instruct
-  targetModels:
-  - name: food-review-1
-    weight: 90
-  - name: food-review-2
-    weight: 10
-```
+To split traffic to a new adapter version, follow the instructions on the provided doc: https://docs.google.com/document/d/1s4U4T_cjQkk4UeIDyAJl2Ox6FZoBigXBXn9Ai0qV7As/edit?tab=t.0#heading=h.9re863ochpnv
 
 The above configuration means one in every ten requests should be sent to the new version. Try it out:
 
@@ -96,23 +72,6 @@ curl -i ${IP}:${PORT}/v1/completions -H 'Content-Type: application/json' -d '{
 ```
 
 ### Finish the rollout
-
-
-Modify the InferenceModel to direct 100% of the traffic to the latest version of the adapter.
-
-```yaml
-apiVersion: inference.networking.x-k8s.io/v1alpha2
-kind: InferenceModel
-metadata:
-  name: food-review
-spec:
-  criticality: 1
-  poolRef:
-    name: vllm-llama3-8b-instruct
-  targetModels:
-  - name: food-review-2
-    weight: 100
-```
 
 Unload the older versions from the servers by updating the LoRA syncer ConfigMap to list the older version under the `ensureNotExist` list:
 

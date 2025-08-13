@@ -18,31 +18,8 @@ spec:
     pool: gemma3
 ```
 Let us say we have a couple of LoRA adapters named “english-bot” and “spanish-bot” for the Gemma3 base model.
-You can create an `InferenceModel` resource and associate these LoRA adapters to the relevant InferencePool resource.  
-In this case, we associate these LoRA adapters to the gemma3 InferencePool resource created above.
 
-```yaml
-apiVersion: inference.networking.x-k8s.io/v1alpha2
-kind: InferenceModel
-metadata:
-  name: english-bot
-spec:
-  criticality: 1
-  poolRef:
-    name: gemma3
-        
----
-apiVersion: inference.networking.x-k8s.io/v1alpha2
-kind: InferenceModel
-metadata:
-  name: spanish-bot
-spec:
-  criticality: 2
-  poolRef:
-    name: gemma3
-    
-```
-Now, you can route your requests from the gateway using the `HTTPRoute` object.
+You can route your requests from the gateway using the `HTTPRoute` object.
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway

@@ -83,14 +83,6 @@ This quickstart guide is intended for engineers familiar with k8s and model serv
       kubectl apply -k https://github.com/kubernetes-sigs/gateway-api-inference-extension/config/crd
       ```
 
-### Deploy InferenceModel
-
-   Deploy the sample InferenceModel which is configured to forward traffic to the `food-review-1` [LoRA adapter](https://docs.vllm.ai/en/latest/features/lora.html) of the sample model server.
-
-   ```bash
-   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api-inference-extension/raw/main/config/manifests/inferenceobjective.yaml
-   ```
-
 ### Deploy the InferencePool and Endpoint Picker Extension
 
    ```bash
@@ -265,7 +257,7 @@ This quickstart guide is intended for engineers familiar with k8s and model serv
    The following instructions assume you would like to cleanup ALL resources that were created in this quickstart guide.
    Please be careful not to delete resources you'd like to keep.
 
-   1. Uninstall the InferencePool, InferenceModel, and model server resources
+   1. Uninstall the Inference Gateway, and model server resources
 
       ```bash
       kubectl delete -f https://github.com/kubernetes-sigs/gateway-api-inference-extension/raw/main/config/manifests/inferencepool-resources.yaml --ignore-not-found

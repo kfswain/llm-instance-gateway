@@ -82,7 +82,6 @@ nav:
     - API Reference: reference/spec.md
     - API Types:
       - InferencePool: api-types/inferencepool.md
-      - InferenceModel: api-types/inferencemodel.md
   - Enhancements:
     - Overview: gieps/overview.md
   - Contributing:

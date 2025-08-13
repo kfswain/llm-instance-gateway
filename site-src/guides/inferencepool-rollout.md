@@ -34,7 +34,6 @@ teams can ensure stability and performance, quickly identifying and reverting an
 
 1. **Deploy new infrastructure**: Create a new InferencePool configured with the new node(compute/accelerator) / model server / base model that you chose.
 1. **Configure traffic splitting**: Use an HTTPRoute to split traffic between the existing InferencePool and the new InferencePool. The `backendRefs.weight` field controls the traffic percentage allocated to each pool.
-1. **Maintain InferenceModel integrity**: Retain the existing InferenceModel configuration to ensure uniform model behavior across both node configurations or base model versions or model server versions.
 1. **Preserve rollback capability**: Retain the original nodes and InferencePool during the roll out to facilitate a rollback if necessary.
 
 ## Example
@@ -46,22 +45,10 @@ Follow the steps in the [main guide](index.md)
 ### Deploy new infrastructure
 You start with an existing InferencePool named vllm-llama3-8b-instruct.
 To replace the original InferencePool, you create a new InferencePool named vllm-llama3-8b-instruct-new along with
-InferenceModels and Endpoint Picker Extension configured with the updated node specifications of `nvidia-h100-80gb` accelerator type,
+an Endpoint Picker Extension configured with the updated node specifications of `nvidia-h100-80gb` accelerator type,
 
 ```yaml
 kubectl apply -f - <<EOF
----
-apiVersion: inference.networking.x-k8s.io/v1alpha2
-kind: InferenceModel
-metadata:
-  name: food-review-new
-spec:
-  criticality: 1
-  poolRef:
-    name: vllm-llama3-8b-instruct-new
-  targetModels:
-    - name: food-review-1
-      weight: 100
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -395,9 +382,8 @@ spec:
             value: /
 ```
 
-### Delete old version of InferencePool, InferenceModel and Endpoint Picker Extension
+### Delete old version of InferencePool and Endpoint Picker Extension
 ```shell
-kubectl delete InferenceModel food-review --ignore-not-found
 kubectl delete Deployment vllm-llama3-8b-instruct --ignore-not-found
 kubectl delete ConfigMap vllm-llama3-8b-instruct-adapters --ignore-not-found
 kubectl delete InferencePool vllm-llama3-8b-instruct --ignore-not-found
