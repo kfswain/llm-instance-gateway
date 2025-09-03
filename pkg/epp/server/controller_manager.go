@@ -62,7 +62,8 @@ func defaultManagerOptions(gknn common.GKNN, metricsServerOptions metricsserver.
 				},
 			},
 		},
-		Metrics: metricsServerOptions,
+		Metrics:          metricsServerOptions,
+		PprofBindAddress: ":8082",
 	}
 	switch gknn.Group {
 	case v1alpha2.GroupName:

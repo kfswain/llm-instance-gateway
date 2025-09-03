@@ -231,6 +231,7 @@ func (r *Runner) Run(ctx context.Context) error {
 		}
 		runtime.SetMutexProfileFraction(1)
 		runtime.SetBlockProfileRate(1)
+		runtime.SetCPUProfileRate(1)
 	}
 
 	err = r.parsePluginsConfiguration(ctx)
@@ -501,6 +502,9 @@ func setupPprofHandlers(mgr ctrl.Manager) error {
 		"threadcreate",
 		"block",
 		"mutex",
+		"profile",
+		"trace",
+		"cmdline",
 	}
 	for _, p := range profiles {
 		err = mgr.AddMetricsServerExtraHandler("/debug/pprof/"+p, pprof.Handler(p))
